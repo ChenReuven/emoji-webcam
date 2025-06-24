@@ -93,9 +93,9 @@
             border: 2px solid #333;
             padding: 10px;
             margin: 20px 0;
-            font-family: 'Courier New', monospace;
-            font-size: 12px;
-            line-height: 12px;
+            font-family: 'Apple Color Emoji', 'Segoe UI Emoji', 'Noto Color Emoji', monospace;
+            font-size: 16px;
+            line-height: 16px;
             white-space: pre;
             overflow-y: auto;
             overflow-x: hidden;
@@ -103,6 +103,9 @@
             flex: 1;
             box-sizing: border-box;
             min-height: 60vh;
+            letter-spacing: 0px;
+            word-spacing: 0px;
+            text-rendering: optimizeSpeed;
         }
 
         .status {
@@ -135,8 +138,8 @@
             }
             
             #emojiOutput {
-                font-size: 8px;
-                line-height: 8px;
+                font-size: 12px;
+                line-height: 12px;
                 padding: 5px;
                 min-height: 50vh;
             }
@@ -163,6 +166,7 @@
             <button id="startButton">Start Camera</button>
             <button id="stopButton" disabled>Stop Camera</button>
             <button id="snapshotButton" disabled>Save Snapshot</button>
+            <button id="randomizeButton" disabled>🎲 Randomize Emojis</button>
         </div>
 
         <div class="status" id="status">Click "Start Camera" to begin</div>
@@ -200,11 +204,18 @@
                 this.resolution = 80;
                 this.brightness = 1.0;
                 
-                // Emoji mapping from darkest to lightest
-                this.emojiMap = [
-                    '⬛', '🟫', '🟤', '🔴', '🟠', 
-                    '🟡', '🟢', '🔵', '🟣', '⚪'
-                ];
+                // Expanded emoji mapping with random variety
+                this.emojiSets = {
+                    dark: ['⬛', '🖤', '🌑', '🕳️', '🔲', '◼️', '▪️'],
+                    darkMid: ['🟫', '🟤', '🤎', '🍫', '🪨', '🥔', '🪵'],
+                    midDark: ['🔴', '🟠', '🔶', '🧡', '🍊', '🔥', '🌶️'],
+                    midLight: ['🟡', '🌟', '⭐', '🌞', '🔆', '💛', '🌻'],
+                    lightMid: ['🟢', '🔵', '💚', '💙', '🌊', '🌳', '🍃'],
+                    light: ['🟣', '🟪', '💜', '🔮', '🌸', '🦄', '✨'],
+                    brightest: ['⚪', '🤍', '☁️', '🌙', '💎', '🔳', '◻️']
+                };
+                
+                this.currentEmojiMap = this.generateRandomEmojiMap();
                 
                 this.initializeControls();
                 this.setupEventListeners();
@@ -227,12 +238,29 @@
                 });
             }
             
+            generateRandomEmojiMap() {
+                const sets = Object.values(this.emojiSets);
+                return sets.map(set => set[Math.floor(Math.random() * set.length)]);
+            }
+            
+            randomizeEmojis() {
+                this.currentEmojiMap = this.generateRandomEmojiMap();
+            }
+            
             setupEventListeners() {
                 document.getElementById('startButton').addEventListener('click', () => this.startCamera());
                 document.getElementById('stopButton').addEventListener('click', () => this.stopCamera());
                 document.getElementById('snapshotButton').addEventListener('click', () => this.saveSnapshot());
+                document.getElementById('randomizeButton').addEventListener('click', () => this.randomizeEmojis());
                 
                 window.addEventListener('resize', () => this.handleResize());
+                
+                // Randomize emojis every 15 seconds for variety
+                setInterval(() => {
+                    if (this.isRunning) {
+                        this.randomizeEmojis();
+                    }
+                }, 15000);
             }
             
             updateStatus(message, isError = false) {
@@ -261,6 +289,7 @@
                     document.getElementById('startButton').disabled = true;
                     document.getElementById('stopButton').disabled = false;
                     document.getElementById('snapshotButton').disabled = false;
+                    document.getElementById('randomizeButton').disabled = false;
                     
                     this.updateStatus('Camera active - processing video...');
                     
@@ -286,6 +315,7 @@
                 document.getElementById('startButton').disabled = false;
                 document.getElementById('stopButton').disabled = true;
                 document.getElementById('snapshotButton').disabled = true;
+                document.getElementById('randomizeButton').disabled = true;
                 
                 this.updateStatus('Camera stopped');
                 this.output.textContent = '';
@@ -349,8 +379,8 @@
                         let brightness = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
                         brightness = Math.max(0, Math.min(1, brightness * this.brightness));
                         
-                        const emojiIndex = Math.floor(brightness * (this.emojiMap.length - 1));
-                        result += this.emojiMap[emojiIndex];
+                        const emojiIndex = Math.floor(brightness * (this.currentEmojiMap.length - 1));
+                        result += this.currentEmojiMap[emojiIndex];
                     }
                     result += '\n';
                 }
